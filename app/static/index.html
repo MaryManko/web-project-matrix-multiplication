@@ -3,118 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distributed Calculator</title>
+    <title>Система Розподілених Обчислень</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 50px; background-color: #f8f9fa; }
+        .container { max-width: 950px; }
+        .card { margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
+        .btn-primary { background-color: #0d6efd; }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Система Розподілених Обчислень</h1>
+<div class="container">
+    <h1 class="text-center mb-5 fw-bold">Система Розподілених Обчислень</h1>
 
-    <div class="card p-4 shadow-sm">
-        <div class="row g-3 align-items-center">
+    <div class="card p-4">
+        <div class="row g-3 align-items-center justify-content-center">
             <div class="col-auto">
-                <label for="matrixSize" class="col-form-label">Розмір матриці:</label>
+                <label for="matrixSize" class="col-form-label fs-5">Розмір матриці:</label>
             </div>
             <div class="col-auto">
-                <input type="number" id="matrixSize" class="form-control" value="100">
+                <input type="number" id="matrixSize" class="form-control form-control-lg" placeholder="Наприклад, 100" style="width: 200px;">
             </div>
             <div class="col-auto">
-                <button onclick="createTask()" class="btn btn-primary">Запустити обчислення</button>
+                <button onclick="createTask()" class="btn btn-primary btn-lg">Запустити обчислення</button>
             </div>
         </div>
     </div>
 
-    <h3 class="mt-5">Історія Задач</h3>
-    <table class="table table-striped mt-3 bg-white shadow-sm rounded">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Опис</th>
-                <th>Статус</th>
-                <th>Прогрес</th>
-                <th>Дія</th> </tr>
-        </thead>
-        <tbody id="tasksTable">
-            </tbody>
-    </table>
+    <h3 class="mb-3">Історія Задач</h3>
+    <div class="card p-3">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 5%">ID</th>
+                    <th style="width: 30%">Опис</th>
+                    <th style="width: 15%">Статус</th>
+                    <th style="width: 35%">Прогрес</th>
+                    <th style="width: 15%">Дія</th>
+                </tr>
+            </thead>
+            <tbody id="tasksTableBody">
+                </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
+    // Адреса нашого API (Nginx перенаправляє порт 80, тому порт не пишемо)
     const API_URL = "http://127.0.0.1";
-    // Функція створення задачі
-    async function createTask() {
-        const size = document.getElementById('matrixSize').value;
-        await fetch(`${API_URL}/tasks`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ matrix_size: parseInt(size) })
-        });
-        loadTasks(); // Одразу оновити список
-    }
 
-    // НОВА функція скасування
-    async function cancelTask(taskId) {
-        if(!confirm('Точно зупинити задачу?')) return;
-        
-        await fetch(`${API_URL}/tasks/${taskId}/cancel`, {
-            method: 'POST'
-        });
-        loadTasks(); // Оновити таблицю
-    }
-
-    // Функція завантаження списку задач (ВЖЕ ОНОВЛЕНА)
+    // Функція для завантаження списку задач
     async function loadTasks() {
-        const response = await fetch(`${API_URL}/tasks`);
-        const tasks = await response.json();
-        
-        const tableBody = document.getElementById('tasksTable');
-        tableBody.innerHTML = ''; // Очистити таблицю перед оновленням
+        try {
+            const response = await fetch(API_URL + "/tasks");
+            if (!response.ok) return; // Якщо помилка мережі - ігноруємо
+            
+            const tasks = await response.json();
+            const tbody = document.getElementById('tasksTableBody');
+            tbody.innerHTML = ''; // Очищаємо таблицю перед оновленням
 
-        tasks.forEach(task => {
-            // Визначаємо колір статусу
-            let badgeColor = 'secondary';
-            if (task.status === 'Processing') badgeColor = 'warning';
-            if (task.status === 'Completed') badgeColor = 'success';
-            if (task.status === 'Error') badgeColor = 'danger';
-            if (task.status === 'Cancelled') badgeColor = 'dark'; // Чорний для скасованих
+            tasks.forEach(task => {
+                // Вибираємо колір для статусу
+                let statusBadge = '';
+                if (task.status === 'Completed') statusBadge = '<span class="badge bg-success">Completed</span>';
+                else if (task.status === 'Processing') statusBadge = '<span class="badge bg-warning text-dark">Processing</span>';
+                else if (task.status === 'Cancelled') statusBadge = '<span class="badge bg-dark">Cancelled</span>';
+                else if (task.status === 'Error') statusBadge = '<span class="badge bg-danger">Error</span>';
+                else statusBadge = `<span class="badge bg-secondary">${task.status}</span>`;
 
-            // Логіка для кнопки "Скасувати"
-            let actionButton = '';
-            // Кнопку показуємо тільки якщо задача ще робиться або чекає
-            if (task.status === 'Processing' || task.status === 'Pending') {
-                actionButton = `
-                    <button onclick="cancelTask(${task.id})" class="btn btn-danger btn-sm">
-                        Стоп 🛑
-                    </button>
-                `;
-            }
+                // Показуємо кнопку "Стоп" тільки якщо задача активна
+                let actionButton = '';
+                if (task.status === 'Processing' || task.status === 'Pending') {
+                    actionButton = `<button onclick="cancelTask(${task.id})" class="btn btn-danger btn-sm">Стоп 🛑</button>`;
+                }
 
-            // Малюємо рядок таблиці
-            const row = `
-                <tr>
-                    <td>${task.id}</td>
-                    <td>${task.description}</td>
-                    <td><span class="badge bg-${badgeColor}">${task.status}</span></td>
-                    <td>
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" 
-                                 style="width: ${task.progress}%">
-                                 ${task.progress}%
+                // Створюємо рядок таблиці
+                const row = `
+                    <tr>
+                        <td><strong>${task.id}</strong></td>
+                        <td>${task.description}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated ${task.status === 'Error' ? 'bg-danger' : ''}"
+                                     role="progressbar"
+                                     style="width: ${task.progress}%;"
+                                     aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
+                                    ${task.progress}%
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>${actionButton}</td>
-                </tr>
-            `;
-            tableBody.innerHTML += row;
-        });
+                        </td>
+                        <td>${actionButton}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        } catch (error) {
+            console.error("Помилка оновлення:", error);
+        }
     }
 
-    // Запускаємо оновлення кожні 2 секунди
+    // Функція створення нової задачі (З ВАЛІДАЦІЄЮ ПОМИЛОК)
+    async function createTask() {
+        const sizeInput = document.getElementById('matrixSize');
+        const size = parseInt(sizeInput.value);
+
+        if (isNaN(size)) {
+            alert("Будь ласка, введіть число!");
+            return;
+        }
+
+        try {
+            const response = await fetch(API_URL + "/tasks", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ matrix_size: size })
+            });
+
+            // --- ПЕРЕВІРКА НА ПОМИЛКИ ВІД СЕРВЕРА ---
+            if (!response.ok) {
+                // Якщо сервер повернув 400 або 500
+                const errorData = await response.json();
+                // Показуємо красиве віконце з текстом помилки
+                alert("⚠️ ПОМИЛКА: " + errorData.detail);
+                return; // Виходимо, не оновлюємо таблицю
+            }
+            // ----------------------------------------
+
+            // Якщо все ок - оновлюємо список
+            await loadTasks();
+            sizeInput.value = ""; 
+        } catch (error) {
+            console.error("Error creating task:", error);
+            alert("Не вдалося з'єднатися з сервером!");
+        }
+    }
+
+    // Функція скасування задачі
+    async function cancelTask(taskId) {
+        if (!confirm("Зупинити цю задачу?")) return;
+        
+        try {
+            await fetch(API_URL + `/tasks/${taskId}/cancel`, { method: "POST" });
+            await loadTasks(); // Одразу оновити вигляд
+        } catch (error) {
+            alert("Помилка при скасуванні");
+        }
+    }
+
+    // Оновлюємо дані кожні 2 секунди
     setInterval(loadTasks, 2000);
-    loadTasks(); // Перший запуск одразу
+    
+    // Перше завантаження
+    loadTasks();
 </script>
 
 </body>

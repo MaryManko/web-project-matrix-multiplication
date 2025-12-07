@@ -31,6 +31,17 @@ def read_root():
 @app.post("/tasks", response_model=schemas.TaskResponse)
 def create_task(task_data: schemas.TaskCreate, db: Session = Depends(get_db)):
 
+    if task_data.matrix_size > 2000:
+        raise HTTPException(
+            status_code=400, 
+            detail="Занадто велика матриця! Максимум дозволено 2000."
+        )
+    if task_data.matrix_size < 2:
+        raise HTTPException(
+            status_code=400, 
+            detail="Занадто мала матриця! Мінімум 2."
+        )
+
     # Створюємо задачу в БД
     new_task = models.Task(
         status="Pending",
