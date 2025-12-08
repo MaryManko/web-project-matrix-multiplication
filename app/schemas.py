@@ -1,15 +1,36 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
-# Це те, що клієнт надсилає нам (тільки розмір матриці)
+# --- СХЕМИ ДЛЯ ЗАДАЧ ---
 class TaskCreate(BaseModel):
     matrix_size: int
 
-# Це те, що ми відповідаємо клієнту (ID задачі і статус)
 class TaskResponse(BaseModel):
     id: int
     status: str
     progress: int
     description: str
+    # owner_id ми не показуємо, це внутрішня кухня
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+# --- НОВІ СХЕМИ ДЛЯ КОРИСТУВАЧА ---
+
+# Що ми отримуємо при реєстрації
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+# Що ми віддаємо (пароль показувати не можна!)
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+
+# Схема для Токена (цифрової перепустки)
+class Token(BaseModel):
+    access_token: str
+    token_type: str

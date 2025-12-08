@@ -5,3 +5,7 @@ psycopg2-binary     # Драйвер для PostgreSQL (щоб Python розум
 redis               # Бібліотека для спілкування з Redis
 celery              # Інструмент для фонових задач (Worker)
 flower              # (Бонус) Панель адміністратора для моніторингу задач
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+email-validator

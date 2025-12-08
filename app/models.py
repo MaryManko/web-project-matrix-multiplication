@@ -1,20 +1,30 @@
-from sqlalchemy import Column, Integer, String, Float, Text
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from .database import Base
 
-class Task(Base):
-    # Назва таблиці в базі даних буде 'tasks'
-    __tablename__ = 'tasks'
+# --- НОВА ТАБЛИЦЯ: КОРИСТУВАЧІ ---
+class User(Base):
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    
-    # Статус: "Pending" (в черзі), "Processing" (рахується), "Completed" (готово), "Error"
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+
+    # Зв'язок: Один користувач має багато задач
+    tasks = relationship("Task", back_populates="owner")
+
+# --- ОНОВЛЕНА ТАБЛИЦЯ: ЗАДАЧІ ---
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
     status = Column(String, default="Pending")
-    
-    # Прогрес виконання у відсотках (0 - 100)
     progress = Column(Integer, default=0)
+    description = Column(String)
     
-    # Результат обчислень (збережемо як текст або JSON)
-    result = Column(Text, nullable=True)
-    
-    # Вхідні дані (наприклад, розмір матриці)
-    description = Column(String, nullable=True)
+    # НОВЕ ПОЛЕ: Власник задачі
+    # Ми кажемо, що це поле посилається на id з таблиці users
+    owner_id = Column(Integer, ForeignKey("users.id"))
+
+    # Зв'язок: Багато задач належать одному власнику
+    owner = relationship("User", back_populates="tasks")
