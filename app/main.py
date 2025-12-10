@@ -6,32 +6,32 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
-# Імпорт моделей та схем
+
 from . import models, database, schemas, security
 from .worker import calculate_matrix_task
 
-# Створення таблиць
+
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# --- CORS (ГОЛОВНЕ ВИПРАВЛЕННЯ!) ---
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Можеш замінити на конкретний домен
+    allow_origins=["*"],          
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Static files
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Авторизація
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-# ---- DB SESSION ----
+
 def get_db():
     db = database.SessionLocal()
     try:
@@ -40,7 +40,7 @@ def get_db():
         db.close()
 
 
-# ---- GET CURRENT USER ----
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -62,17 +62,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 
-# ---- ROUTES ----
+
 
 @app.get("/")
 def read_root():
     return FileResponse("app/static/index.html")
 
 
-# 1. РЕЄСТРАЦІЯ
+
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    # Перевіряємо, чи email вже зайнятий
+
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -86,7 +86,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-# 2. ЛОГІН
+
 @app.post("/login", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
@@ -102,7 +102,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# 3. СТВОРЕННЯ ЗАДАЧІ
+
 @app.post("/tasks", response_model=schemas.TaskResponse)
 def create_task(
     task_data: schemas.TaskCreate, 
@@ -129,7 +129,7 @@ def create_task(
     return new_task
 
 
-# 4. ОТРИМАННЯ ЗАДАЧ ПОТОЧНОГО КОРИСТУВАЧА
+
 @app.get("/tasks", response_model=list[schemas.TaskResponse])
 def get_tasks(
     db: Session = Depends(get_db),
@@ -139,7 +139,7 @@ def get_tasks(
     return tasks
 
 
-# 5. СКАСУВАННЯ ЗАДАЧІ
+
 @app.post("/tasks/{task_id}/cancel")
 def cancel_task(
     task_id: int, 
