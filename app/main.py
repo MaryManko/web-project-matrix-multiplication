@@ -109,10 +109,20 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    
+    
     if task_data.matrix_size > 2000:
         raise HTTPException(status_code=400, detail="Занадто велика матриця! Максимум 2000.")
     if task_data.matrix_size < 2:
         raise HTTPException(status_code=400, detail="Занадто мала матриця!")
+    
+    active_tasks_count = db.query(models.Task).filter(
+        models.Task.owner_id == current_user.id,
+        models.Task.status.in_(["Pending", "Processing"])
+    ).count()
+
+    if active_tasks_count >= 5:
+        raise HTTPException(status_code=400, detail="Ліміт задач перевищено! Дочекайтесь завершення поточних.")
 
     new_task = models.Task(
         status="Pending",

@@ -188,18 +188,39 @@
         } catch (e) { console.error(e); }
     }
 
-    async function createTask() {
-        const size = document.getElementById('matrixSize').value;
-        if (!size) return alert("Введіть розмір");
+async function createTask() {
+    const sizeInput = document.getElementById('matrixSize').value;
+    if (!sizeInput) return alert("Введіть розмір");
 
-        const response = await fetch(API_URL + "/tasks", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + TOKEN },
-            body: JSON.stringify({ matrix_size: parseInt(size) })
-        });
-        if (!response.ok) { const err = await response.json(); alert(err.detail); } 
-        else { loadTasks(); }
+    const size = parseInt(sizeInput);
+
+    if (size > 2000) {
+        alert("Помилка: Розмір матриці не може перевищувати 2000!");
+        return;
     }
+
+    if (size < 2) {
+        alert("Помилка: Матриця занадто мала!");
+        return;
+    }
+
+    const response = await fetch(API_URL + "/tasks", {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": "Bearer " + TOKEN 
+        },
+        body: JSON.stringify({ matrix_size: size })
+    });
+
+    if (!response.ok) { 
+        const err = await response.json(); 
+        alert(err.detail); 
+    } else { 
+        loadTasks(); 
+        document.getElementById('matrixSize').value = "";
+    }
+}
 
     async function cancelTask(id) {
         await fetch(API_URL + `/tasks/${id}/cancel`, {

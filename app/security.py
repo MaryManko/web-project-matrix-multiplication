@@ -3,15 +3,12 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# --- НАЛАШТУВАННЯ ---
+
 SECRET_KEY = "my_secret_key_for_university_project"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# !!! МИ ЗМІНИЛИ АЛГОРИТМ ТУТ !!!
-# Було: schemes=["bcrypt"]
-# Стало: schemes=["pbkdf2_sha256"]
-# Це вирішує проблему "password too long"
+
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
